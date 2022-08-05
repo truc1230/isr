@@ -126,8 +126,13 @@ module.exports = {
         ], // Heading 2 56px
       },
       colors: {
-        primary: colors.red,
+        'color-primary': '#EB2B3E',
+        // primaryGradient: '#',
         gray: colors.neutral,
+        'text-primary': '#22313F',
+        'text-secondary': '#808890',
+        'text-textfield': '#B2B7BC',
+        'text-white': '#FFFFFF',
       },
       typography: (theme) => ({
         DEFAULT: {
