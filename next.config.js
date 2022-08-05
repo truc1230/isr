@@ -1,77 +1,87 @@
-/* eslint-disable import/no-extraneous-dependencies,import/no-unresolved */
-const withFonts = require('next-fonts');
-const withPlugins = require('next-compose-plugins');
-const { parsed: env } = require('dotenv')
-    .config();
-const path = require('path');
-
-const {
-
-    NEXT_PUBLIC_API_URL,
-    NODE_ENV,
-    ANALYZE,
-    BUILD_NUMBER,
-} = process.env;
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
-    enabled: ANALYZE === 'true',
-});
+  enabled: process.env.ANALYZE === 'true',
+})
 
+// You might need to insert additional domains in script-src if you are using external services
+const ContentSecurityPolicy = `
+  default-src 'self';
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' giscus.app;
+  style-src 'self' 'unsafe-inline';
+  img-src * blob: data:;
+  media-src 'none';
+  connect-src *;
+  font-src 'self';
+  frame-src giscus.app
+`
 
+const securityHeaders = [
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+  {
+    key: 'Content-Security-Policy',
+    value: ContentSecurityPolicy.replace(/\n/g, ''),
+  },
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+  {
+    key: 'X-Frame-Options',
+    value: 'DENY',
+  },
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-DNS-Prefetch-Control
+  {
+    key: 'X-DNS-Prefetch-Control',
+    value: 'on',
+  },
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=31536000; includeSubDomains',
+  },
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Feature-Policy
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=()',
+  },
+]
 
-const basePath = '';
+module.exports = withBundleAnalyzer({
+  reactStrictMode: true,
+  pageExtensions: ['js', 'jsx', 'md', 'mdx'],
+  eslint: {
+    dirs: ['pages', 'components', 'lib', 'layouts', 'scripts'],
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: securityHeaders,
+      },
+    ]
+  },
+  webpack: (config, { dev, isServer }) => {
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    })
 
-const { i18n } = require('./next-i18next.config');
+    if (!dev && !isServer) {
+      // Replace React with Preact only in client production build
+      Object.assign(config.resolve.alias, {
+        'react/jsx-runtime.js': 'preact/compat/jsx-runtime',
+        react: 'preact/compat',
+        'react-dom/test-utils': 'preact/test-utils',
+        'react-dom': 'preact/compat',
+      })
+    }
 
-const moduleExports = withPlugins([
-        [withBundleAnalyzer],
-        [withFonts],
-    ],
-    {
-        async headers() {
-            return [
-                {
-                    source: '/.well-known/apple-app-site-association',
-                    headers: [
-                        {
-                            key: 'Content-Type',
-                            value: 'application/json; charset=utf-8',
-                        },
-                    ],
-                },
-                {
-                    source: '/.well-known/assetlinks.json',
-                    headers: [
-                        {
-                            key: 'Content-Type',
-                            value: 'application/json; charset=utf-8',
-                        },
-                    ],
-                },
-            ];
-        },
-        eslint: {
-            // Warning: This allows production builds to successfully complete even if
-            // your project has ESLint errors.
-            ignoreDuringBuilds: true,
-        },
-        env: {
-            // Make the COMMIT_SHA available to the client so that Sentry events can be
-            // marked for the release they belong to. It may be undefined if running
-            // outside of Vercel
-        },
-        i18n,
-        sassOptions: {
-            includePaths: [path.join(__dirname, 'styles')],
-        },
-        images: {
-            domains: [
-                'test.nami.exchange',
-                'static.namifutures.com',
-                'sgp1.digitaloceanspaces.com',
-                'nami.io',
-                'datav2.nami.exchange',
-            ],
-        },
-        distDir: process.env.BUILD_DIR || 'build',
-    });
-
+    return config
+  },
+})

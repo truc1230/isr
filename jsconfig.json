@@ -1,18 +1,12 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "checkJs": true,
-    "jsx": "react",
     "paths": {
-      "*": ["src/*"],
-      "src": ["src/*"],
-      "test/*": ["test/*"],
-      "underscore": ["lodash"],
-      "public": ["public/*"],
-      "components": ["src/components/*"],
-      "pages": ["src/pages/*"],
-      "reducers": ["src/redux/reducers/*"],
-      "config": ["src/config/*"]
+      "@/components/*": ["components/*"],
+      "@/data/*": ["data/*"],
+      "@/layouts/*": ["layouts/*"],
+      "@/lib/*": ["lib/*"],
+      "@/css/*": ["css/*"]
     }
   }
 }
